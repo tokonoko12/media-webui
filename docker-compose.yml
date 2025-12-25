@@ -3,8 +3,10 @@ version: '3'
 services:
   web:
     build: .
+    env_file:
+      - .env
     ports:
-      - "3000:4173"
+      - "9011:4173"
     environment:
       - NODE_ENV=production
     restart: always
