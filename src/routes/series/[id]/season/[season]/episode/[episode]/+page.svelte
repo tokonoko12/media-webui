@@ -4,7 +4,9 @@
 	import StreamModal from '$lib/components/ui/StreamModal.svelte';
 
 	let { data } = $props();
-	let { series, episode, streams } = $derived(data);
+	let { series, episode } = $derived(data);
+	let streams = $state<any>(null);
+	let isLoadingStreams = $state(false);
 
 	let isVideoOpen = $state(false);
 	let isStreamModalOpen = $state(false);
@@ -13,6 +15,16 @@
 	let currentAudioTracks = $state<any>(undefined);
 	let currentPlayQuality = $state<string | undefined>(undefined);
 	let activeStream = $state<any>(undefined);
+
+	// Fetch streams on mount
+	$effect(() => {
+		if (series && series.id && data.seasonNumber && data.episodeNumber) {
+			streams = null;
+			activeStream = undefined;
+			currentPlayQuality = undefined;
+			fetchStreams(series.id, data.seasonNumber, data.episodeNumber);
+		}
+	});
 
 	// Initial setup to have a default active stream if available
 	$effect(() => {
@@ -29,6 +41,20 @@
 			}
 		}
 	});
+
+	async function fetchStreams(id: number, season: number, episode: number) {
+		isLoadingStreams = true;
+		try {
+			const res = await fetch(`/api/streams/series/${id}/${season}/${episode}`);
+			if (res.ok) {
+				streams = await res.json();
+			}
+		} catch (e) {
+			console.error('Failed to fetch streams:', e);
+		} finally {
+			isLoadingStreams = false;
+		}
+	}
 
 	let isResolving = $state(false);
 
@@ -161,10 +187,10 @@
 			<div class="mt-10 flex flex-col items-center gap-4 sm:flex-row">
 				<button
 					onclick={openPlay}
-					disabled={isResolving}
+					disabled={isResolving || isLoadingStreams}
 					class="bg-dash-amber border-dash-amber group flex min-w-[200px] items-center justify-center gap-3 border px-8 py-4 font-bold tracking-widest text-black uppercase transition-all hover:bg-black hover:text-[#DCA54C] disabled:cursor-wait"
 				>
-					{#if isResolving}
+					{#if isResolving || isLoadingStreams}
 						<svg
 							class="h-5 w-5 animate-spin"
 							xmlns="http://www.w3.org/2000/svg"

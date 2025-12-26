@@ -675,8 +675,20 @@
 				class="relative aspect-video w-full max-w-5xl overflow-hidden rounded-lg bg-black shadow-2xl"
 				transition:scale={{ duration: 200, start: 0.95 }}
 			>
-				<button onclick={onClose} class="absolute -top-10 right-0 text-white/50 hover:text-white">
-					CLOSE
+				<button
+					onclick={onClose}
+					class="absolute top-4 right-4 z-50 flex items-center justify-center rounded-full bg-black/50 p-2 text-white/80 backdrop-blur-md transition-all hover:bg-black hover:text-white"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke-width="2"
+						stroke="currentColor"
+						class="h-6 w-6"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
 				</button>
 				<iframe
 					src="https://www.youtube.com/embed/{youtubeId}?autoplay=1&rel=0&showinfo=0"

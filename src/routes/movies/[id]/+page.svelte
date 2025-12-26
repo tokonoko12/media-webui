@@ -9,7 +9,9 @@
 	let cast = $derived(data.cast);
 	let recommendations = $derived(data.recommendations);
 	let trailer = $derived(data.trailer);
-	let streams = $derived(data.streams);
+	// Client-side stream fetching
+	let streams = $state<any>(null);
+	let isLoadingStreams = $state(false);
 
 	let isVideoOpen = $state(false);
 	let isStreamModalOpen = $state(false);
@@ -37,20 +39,40 @@
 			currentDownloader = undefined;
 			isVideoOpen = false;
 			isResolving = false;
+			streams = null;
 
-			// Select best stream
-			if (streams?.streams) {
-				const priorities = ['4k', '1080p', '720p', 'other'];
-				for (const quality of priorities) {
-					if (streams.streams[quality]?.length > 0) {
-						activeStream = streams.streams[quality][0];
-						currentPlayQuality = quality;
-						break;
-					}
+			// Fetch streams client-side
+			fetchStreams(movie.id);
+		}
+	});
+
+	// Auto-select when streams are loaded
+	$effect(() => {
+		if (streams?.streams && !activeStream) {
+			const priorities = ['4k', '1080p', '720p', 'other'];
+			for (const quality of priorities) {
+				if (streams.streams[quality]?.length > 0) {
+					activeStream = streams.streams[quality][0];
+					currentPlayQuality = quality;
+					break;
 				}
 			}
 		}
 	});
+
+	async function fetchStreams(id: number) {
+		isLoadingStreams = true;
+		try {
+			const res = await fetch(`/api/streams/movie/${id}`);
+			if (res.ok) {
+				streams = await res.json();
+			}
+		} catch (e) {
+			console.error('Failed to fetch streams:', e);
+		} finally {
+			isLoadingStreams = false;
+		}
+	}
 
 	async function openPlay() {
 		if (activeStream) {
@@ -251,7 +273,11 @@
 								clip-rule="evenodd"
 							/>
 						</svg>
-						{activeStream ? 'PLAY_STREAM' : 'OFFLINE'}
+						{#if isLoadingStreams}
+							LOADING...
+						{:else}
+							{activeStream ? 'PLAY_STREAM' : 'OFFLINE'}
+						{/if}
 					{/if}
 				</button>
 				<button
