@@ -650,7 +650,9 @@
 							</div>
 
 							<!-- Big Flat Timeline -->
-							<div class="relative h-6 w-full bg-gray-800/50 transition-all duration-300 hover:h-8">
+							<div
+								class="relative mx-8 mb-8 h-6 w-auto rounded-sm bg-gray-800/50 transition-all duration-300 hover:h-8"
+							>
 								<input
 									type="range"
 									min="0"
