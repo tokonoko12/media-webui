@@ -71,3 +71,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-dash-text);
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

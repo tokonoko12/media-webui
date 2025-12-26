@@ -87,7 +87,7 @@
 <div class="mx-auto flex h-full max-w-7xl flex-col gap-8 pb-12">
 	{#if data.mode === 'detail'}
 		<!-- DETAIL VIEW: Single Grid + Infinite Scroll -->
-		<section class="panel">
+		<section>
 			<div class="border-dash-border mb-6 flex items-center justify-between border-b pb-2">
 				<h1 class="font-retro text-dash-text-light text-xl tracking-widest uppercase md:text-2xl">
 					{title}
@@ -95,7 +95,7 @@
 			</div>
 
 			{#if movies.length > 0}
-				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				<div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
 					{#each movies as movie}
 						<MovieCard {movie} />
 					{/each}
@@ -140,9 +140,11 @@
 							>[VIEW_MORE]</a
 						>
 					</div>
-					<div class="flex flex-col gap-3">
+					<div class="scrollbar-hide flex gap-4 overflow-x-auto pt-4 pb-4">
 						{#each section.data as movie}
-							<MovieCard {movie} />
+							<div class="w-[140px] flex-none">
+								<MovieCard {movie} />
+							</div>
 						{/each}
 					</div>
 				</section>

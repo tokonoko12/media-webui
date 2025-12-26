@@ -1,15 +1,16 @@
 import type { PageServerLoad } from './$types';
-import { getSeriesDetails, getCredits, getRecommendations, getVideos } from '$lib/server/tmdb';
+import { getSeriesDetails, getCredits, getRecommendations, getVideos, getSeasonDetails } from '$lib/server/tmdb';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params }) => {
     const { id } = params;
 
-    const [series, cast, recommendations, videos] = await Promise.all([
+    const [series, cast, recommendations, videos, initialSeasonEpisodes] = await Promise.all([
         getSeriesDetails(id),
         getCredits(id, 'tv'),
         getRecommendations(id, 'tv'),
-        getVideos(id, 'tv')
+        getVideos(id, 'tv'),
+        getSeasonDetails(id, 1) // Default to season 1
     ]);
 
     if (!series) {
@@ -23,6 +24,7 @@ export const load: PageServerLoad = async ({ params }) => {
         series,
         cast,
         recommendations,
-        trailer: trailer ? trailer.key : null
+        trailer: trailer ? trailer.key : null,
+        initialSeasonEpisodes
     };
 };

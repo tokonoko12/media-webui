@@ -50,9 +50,7 @@
 						class="absolute inset-0 h-full w-full object-cover"
 					/>
 					<!-- Gradient & Noise -->
-					<div
-						class="from-dash-bg absolute inset-0 bg-gradient-to-t via-black/40 to-black/30"
-					></div>
+					<div class="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30"></div>
 					<div
 						class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"
 					></div>
@@ -82,7 +80,7 @@
 						</h1>
 
 						<p
-							class="text-dash-text border-dash-amber mb-4 line-clamp-3 max-w-2xl border-l-2 bg-black/60 p-2 font-mono text-xs leading-relaxed backdrop-blur-sm md:mb-8 md:line-clamp-4 md:p-4 md:text-sm"
+							class="text-dash-text border-dash-amber mb-4 line-clamp-3 max-w-2xl border-l-4 pl-4 font-mono text-xs leading-relaxed drop-shadow-md md:mb-8 md:line-clamp-4 md:text-sm"
 						>
 							{movie.overview}
 						</p>

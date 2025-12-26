@@ -23,7 +23,7 @@ async function fetchFromTMDB(endpoint: string, params: Record<string, string> = 
 
 // Helper to map TMDB result to our Movie interface
 function mapMovie(tmdbMovie: any, mediaType?: 'movie' | 'tv'): Movie {
-    return {
+    const movie: Movie = {
         id: tmdbMovie.id,
         title: tmdbMovie.title || tmdbMovie.name, // Support TV somewhat
         overview: tmdbMovie.overview,
@@ -33,8 +33,48 @@ function mapMovie(tmdbMovie: any, mediaType?: 'movie' | 'tv'): Movie {
         vote_average: tmdbMovie.vote_average,
         genres: [], // We won't fetch genres for every item to save calls, mocking or generic
         media_type: mediaType || tmdbMovie.media_type || 'movie', // Default to movie if unknown
-        imdb_id: tmdbMovie.imdb_id // Important for stream fetching
+        imdb_id: tmdbMovie.imdb_id || tmdbMovie.external_ids?.imdb_id, // Important for stream fetching
+        // Extended Details
+        status: tmdbMovie.status,
+        tagline: tmdbMovie.tagline,
+        runtime: tmdbMovie.runtime || tmdbMovie.episode_run_time?.[0], // Episode run time is array
+        budget: tmdbMovie.budget,
+        revenue: tmdbMovie.revenue,
+        production_companies: tmdbMovie.production_companies,
+        networks: tmdbMovie.networks
     };
+
+    if (tmdbMovie.seasons) {
+        movie.seasons = tmdbMovie.seasons.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            overview: s.overview,
+            poster_path: s.poster_path ? `https://image.tmdb.org/t/p/w500${s.poster_path}` : '',
+            air_date: s.air_date,
+            season_number: s.season_number,
+            episode_count: s.episode_count
+        })).filter((s: any) => s.season_number > 0); // Filter out "Specials" (season 0) usually
+    }
+
+    return movie;
+}
+
+function mapEpisode(tmdbEpisode: any) {
+    return {
+        id: tmdbEpisode.id,
+        name: tmdbEpisode.name,
+        overview: tmdbEpisode.overview,
+        still_path: tmdbEpisode.still_path ? `https://image.tmdb.org/t/p/w500${tmdbEpisode.still_path}` : '',
+        air_date: tmdbEpisode.air_date,
+        vote_average: tmdbEpisode.vote_average,
+        episode_number: tmdbEpisode.episode_number,
+        season_number: tmdbEpisode.season_number
+    };
+}
+
+export async function getSeasonDetails(id: string, seasonNumber: number) {
+    const data = await fetchFromTMDB(`/tv/${id}/season/${seasonNumber}`);
+    return data?.episodes?.map(mapEpisode) || [];
 }
 
 export async function getTrendingMovies() {
@@ -188,7 +228,7 @@ export async function getMovieDetails(id: string) {
 }
 
 export async function getSeriesDetails(id: string) {
-    const data = await fetchFromTMDB(`/tv/${id}`);
+    const data = await fetchFromTMDB(`/tv/${id}?append_to_response=external_ids`);
     return data ? mapMovie(data, 'tv') : null;
 }
 
@@ -220,11 +260,25 @@ export async function getProStreams(imdbId: string | undefined, type: 'movie' | 
         // User only gave example for movies. For now implementing for movies.
         if (type !== 'movie') return null;
 
+        // const res = await fetch(`https://mediaapi.mitserve.fun/movies/${imdbId}`);
         const res = await fetch(`https://mediaapi.mitserve.fun/movies/${imdbId}`);
+
         if (!res.ok) return null;
         return await res.json();
     } catch (e) {
         console.error('Stream API Error:', e);
+        return null;
+    }
+}
+
+export async function getEpisodeStreams(imdbId: string | undefined, season: number, episode: number) {
+    if (!imdbId) return null;
+    try {
+        const res = await fetch(`https://mediaapi.mitserve.fun/series/${imdbId}/${season}/${episode}`);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        console.error('Episode Stream API Error:', e);
         return null;
     }
 }

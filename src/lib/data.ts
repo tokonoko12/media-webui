@@ -1,3 +1,24 @@
+export interface Episode {
+    id: number;
+    name: string;
+    overview: string;
+    still_path: string;
+    air_date: string;
+    vote_average: number;
+    episode_number: number;
+    season_number: number;
+}
+
+export interface Season {
+    id: number;
+    name: string;
+    overview: string;
+    poster_path: string;
+    air_date: string;
+    season_number: number;
+    episode_count: number;
+}
+
 export interface Movie {
     id: number;
     title: string;
@@ -9,6 +30,15 @@ export interface Movie {
     genres: string[];
     media_type?: 'movie' | 'tv';
     imdb_id?: string;
+    seasons?: Season[];
+    // Extended Details
+    status?: string;
+    tagline?: string;
+    runtime?: number;
+    budget?: number;
+    revenue?: number;
+    production_companies?: { id: number; name: string; logo_path: string | null }[];
+    networks?: { id: number; name: string; logo_path: string | null }[];
 }
 
 export const featuredMovie: Movie = {
