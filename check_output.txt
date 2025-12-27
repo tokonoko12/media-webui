@@ -1,0 +1,105 @@
+
+> media-web-ui@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /home/nav/personal_projects/media-web-ui
+Getting Svelte diagnostics...
+
+/home/nav/personal_projects/media-web-ui/src/lib/components/layout/Navbar.svelte:249:5
+Warn: Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus (svelte)
+				class="bg-dash-bg text-dash-text border-dash-border focus:border-dash-amber w-full border px-4 py-2 text-xs transition-colors outline-none placeholder:opacity-40"
+				autofocus
+			/>
+
+/home/nav/personal_projects/media-web-ui/src/lib/components/ui/VideoPlayer.svelte:712:5
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+			>
+				<button
+					onclick={onClose}
+					class="absolute top-4 right-4 z-50 flex items-center justify-center rounded-full bg-black/50 p-2 text-white/80 backdrop-blur-md transition-all hover:bg-black hover:text-white"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke-width="2"
+						stroke="currentColor"
+						class="h-6 w-6"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+				<iframe
+
+/home/nav/personal_projects/media-web-ui/src/lib/components/ui/VideoPlayer.svelte:23:6
+Warn: `containerElement` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update (svelte)
+
+	let containerElement: HTMLDivElement | undefined = undefined;
+
+/home/nav/personal_projects/media-web-ui/src/routes/movies/+page.svelte:7:22
+Warn: This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+
+	let movies = $state(data.movies || []);
+	let currentPage = $state(data.currentPage || 1);
+
+/home/nav/personal_projects/media-web-ui/src/routes/movies/+page.svelte:8:27
+Warn: This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let movies = $state(data.movies || []);
+	let currentPage = $state(data.currentPage || 1);
+	let isLoading = $state(false);
+
+/home/nav/personal_projects/media-web-ui/src/routes/movies/+page.svelte:10:24
+Warn: This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let isLoading = $state(false);
+	let hasMore = $state((data.totalPages || 0) > 1);
+	let loadTrigger = $state<HTMLElement | undefined>(undefined);
+
+/home/nav/personal_projects/media-web-ui/src/routes/my-list/+page.svelte:26:40
+Error: Object literal may only specify known properties, and '"type"' does not exist in type 'Props'. (ts)
+						<div class="group relative">
+							<MovieCard movie={item.details} type={item.media_type} />
+							<form
+
+/home/nav/personal_projects/media-web-ui/src/routes/register/+page.svelte:54:19
+Error: Property 'email' does not exist on type '{ error?: undefined; missing: boolean; } | { missing?: undefined; error: any; }'.
+  Property 'email' does not exist on type '{ error?: undefined; missing: boolean; }'. (ts)
+					required
+					value={form?.email ?? ''}
+					class="border-dash-border focus:border-dash-amber mt-1 block w-full rounded bg-stone-950 px-4 py-3 font-mono text-sm text-white transition-colors outline-none focus:ring-1 focus:ring-amber-500/50"
+
+/home/nav/personal_projects/media-web-ui/src/routes/series/+page.svelte:8:22
+Warn: This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	// Using $state for infinite scroll reactivity
+	let series = $state(data.series || []);
+	let currentPage = $state(data.currentPage || 1);
+
+/home/nav/personal_projects/media-web-ui/src/routes/series/+page.svelte:9:27
+Warn: This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let series = $state(data.series || []);
+	let currentPage = $state(data.currentPage || 1);
+	let isLoading = $state(false);
+
+/home/nav/personal_projects/media-web-ui/src/routes/series/+page.svelte:11:24
+Warn: This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let isLoading = $state(false);
+	let hasMore = $state((data.totalPages || 0) > 1);
+	let loadTrigger = $state<HTMLElement | undefined>(undefined);
+
+/home/nav/personal_projects/media-web-ui/src/routes/series/[id]/+page.svelte:22:24
+Warn: This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let selectedSeason = $state(1);
+	let episodes = $state(data.initialSeasonEpisodes || []);
+	let isLoadingEpisodes = $state(false);
+
+====================================
+svelte-check found 2 errors and 10 warnings in 7 files

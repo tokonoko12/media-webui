@@ -1,81 +1,81 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap');
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  /* Fonts */
-  --font-mono: 'Space Mono', monospace;
-  --font-retro: 'VT323', monospace;
+	/* Fonts */
+	--font-mono: 'Space Mono', monospace;
+	--font-retro: 'VT323', monospace;
 
-  /* Colors - Retro Dashboard Palette */
-  --color-dash-bg: #111111;
-  --color-dash-panel: #1a1a1a;
-  --color-dash-border: #333333;
-  --color-dash-text: #888888;
-  --color-dash-text-light: #cccccc;
-  --color-dash-amber: #DCA54C; /* Active/Highlight */
-  --color-dash-green: #6A9955; /* Success/Go */
-  --color-dash-red: #D16969; /* Error/Alert */
+	/* Colors - Retro Dashboard Palette */
+	--color-dash-bg: #111111;
+	--color-dash-panel: #1a1a1a;
+	--color-dash-border: #333333;
+	--color-dash-text: #888888;
+	--color-dash-text-light: #cccccc;
+	--color-dash-amber: #dca54c; /* Active/Highlight */
+	--color-dash-green: #6a9955; /* Success/Go */
+	--color-dash-red: #d16969; /* Error/Alert */
 }
 
 :root {
-  color-scheme: dark;
-  --background: var(--color-dash-bg);
-  --foreground: var(--color-dash-text);
+	color-scheme: dark;
+	--background: var(--color-dash-bg);
+	--foreground: var(--color-dash-text);
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-mono); /* Default to mono for that terminal feel */
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-  font-size: 14px; /* Slightly smaller default for density */
+	background-color: var(--background);
+	color: var(--foreground);
+	font-family: var(--font-mono); /* Default to mono for that terminal feel */
+	overflow-x: hidden;
+	margin: 0;
+	padding: 0;
+	font-size: 14px; /* Slightly smaller default for density */
 }
 
 /* Custom Utilities */
 .panel {
-  background-color: var(--color-dash-panel);
-  border: 1px solid var(--color-dash-border);
-  padding: 1rem;
+	background-color: var(--color-dash-panel);
+	border: 1px solid var(--color-dash-border);
+	padding: 1rem;
 }
 
 .text-retro {
-  font-family: var(--font-retro);
+	font-family: var(--font-retro);
 }
 
 .text-amber {
-  color: var(--color-dash-amber);
+	color: var(--color-dash-amber);
 }
 
 .border-amber {
-  border-color: var(--color-dash-amber);
+	border-color: var(--color-dash-amber);
 }
 
 .bg-dash-amber {
-  background-color: var(--color-dash-amber);
+	background-color: var(--color-dash-amber);
 }
 
 /* Scrollbar styling for that raw feel */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+	width: 8px;
+	height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-dash-bg);
+	background: var(--color-dash-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-dash-border);
+	background: var(--color-dash-border);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-dash-text);
+	background: var(--color-dash-text);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+	display: none;
 }
 .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+	-ms-overflow-style: none;
+	scrollbar-width: none;
 }

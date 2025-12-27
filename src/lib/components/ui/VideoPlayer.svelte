@@ -9,6 +9,12 @@
 		streamUrl = undefined,
 		audios = undefined,
 		downloader = undefined,
+		mediaId = undefined,
+		mediaType = undefined,
+		season = undefined,
+		episode = undefined,
+		startTime = 0,
+		streamDuration = 0,
 		onClose
 	} = $props();
 
@@ -25,6 +31,9 @@
 	let audioTracks = $derived(audios ? Object.entries(audios) : []);
 	let showAudioMenu = $state(false);
 
+	// History Interval
+	let historyInterval: NodeJS.Timeout;
+
 	// Timeline & Audio State
 	let currentTime = $state(0);
 	let duration = $state(0);
@@ -33,6 +42,36 @@
 	// Special DB (RealDebrid) MPD State
 	let mpdOffset = $state(0);
 	let initialDuration = $state(0);
+
+	function updateHistory() {
+		if (!mediaId || !mediaType || !currentTime || !duration) return;
+
+		// Don't update if just started or finished
+		if (currentTime < 5) return;
+
+		fetch('/api/history', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				media_id: mediaId.toString(), // Ensure string
+				media_type: mediaType,
+				progress: Math.floor(currentTime),
+				duration: Math.floor(duration),
+				season,
+				episode
+			})
+		}).catch((err) => console.error('History update failed', err));
+	}
+
+	$effect(() => {
+		if (isPlaying) {
+			historyInterval = setInterval(updateHistory, 15000);
+		} else {
+			clearInterval(historyInterval);
+			if (currentTime > 0) updateHistory(); // Save on pause
+		}
+		return () => clearInterval(historyInterval);
+	});
 
 	// Set initial selected audio (default to streamUrl or first track)
 	$effect(() => {
@@ -62,6 +101,21 @@
 			selectedAudioUrl = undefined;
 			mpdOffset = 0;
 			initialDuration = 0;
+			isPlaying = false;
+			isBuffering = false;
+			showControls = true;
+			currentTime = 0;
+			duration = 0;
+			selectedAudioUrl = undefined;
+			mpdOffset = 0;
+			initialDuration = 0;
+			currentSrc = undefined;
+		} else {
+			// When opening, if we have a streamDuration, set it immediately
+			if (streamDuration > 0) {
+				duration = streamDuration;
+				initialDuration = streamDuration; // Treat as initial for RD logic too
+			}
 		}
 	});
 
@@ -77,138 +131,213 @@
 		};
 	});
 
+	let currentSrc = $state<string | undefined>(undefined);
+
 	// Initialize Player (HLS or DASH)
 	$effect(() => {
 		if (isOpen && streamUrl && videoElement) {
-			// Check if we already have a player for this URL to prevent re-init
-			// Note: simple check, if streamUrl changes we re-init
-
-			// Reset previous players
-			untrack(() => {
-				if (hls) {
-					hls.destroy();
-					hls = null;
-				}
-				if (dashed) {
-					dashed.destroy();
-					dashed = null;
-				}
-			});
-
-			const isDash = streamUrl.includes('.mpd');
-			const isHls =
-				streamUrl.includes('.m3u8') || (Hls.isSupported() && streamUrl.includes('.m3u8')); // Simple check
-
-			console.log(`[VideoPlayer] Init. URL: ${streamUrl}`);
-
-			// Check for DASH (MPD)
-			if (isDash) {
-				console.log('[VideoPlayer] Initializing DASH');
-				import('dashjs').then((dashjs) => {
-					if (!videoElement || !streamUrl.includes('.mpd')) return;
-
-					// Basic init without seek logic first
-					let playUrl = streamUrl;
-
-					// Allow RD params if needed for initial load, but handling seeking separately is safer.
-					// For initial load, we might want to start at 0 if it's a fresh RD link?
-					// Actually, let's keep it simple: Just init.
-
-					dashed = dashjs.MediaPlayer().create();
-					dashed.updateSettings({
-						streaming: {
-							retryIntervals: {
-								MPD: 5000,
-								MediaSegment: 5000,
-								InitializationSegment: 5000,
-								IndexSegment: 5000,
-								other: 5000
-							},
-							retryAttempts: {
-								MPD: 3,
-								MediaSegment: 3,
-								InitializationSegment: 3,
-								IndexSegment: 3,
-								other: 3
-							}
-						}
-					});
-
-					dashed.initialize(videoElement, playUrl, true); // Auto-play true
-					dashed.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
-						isBuffering = false;
-						isPlaying = true;
-					});
-					dashed.on(dashjs.MediaPlayer.events.PLAYBACK_METADATA_LOADED, () => {
-						const d = videoElement?.duration || 0;
-						// Initial duration setting
-						if (downloader === 'realdebrid') {
-							if (initialDuration === 0 && d > 0) {
-								initialDuration = d;
-							}
-							duration = initialDuration > 0 ? initialDuration : d;
-						} else {
-							duration = d;
-						}
-					});
-				});
-			}
-			// Check for HLS (M3U8)
-			else if (
-				Hls.isSupported() &&
-				(streamUrl.includes('.m3u8') || !videoElement.canPlayType('application/vnd.apple.mpegurl'))
-			) {
-				console.log('[VideoPlayer] Initializing HLS');
-				hls = new Hls({
-					enableWorker: true,
-					lowLatencyMode: true
-				});
-				hls.loadSource(streamUrl);
-				hls.attachMedia(videoElement);
-				hls.on(Hls.Events.MANIFEST_PARSED, () => {
-					videoElement?.play().catch(() => console.log('Autoplay blocked'));
-					isPlaying = true;
-				});
-				hls.on(Hls.Events.ERROR, (event, data) => {
-					if (data.fatal) {
-						switch (data.type) {
-							case Hls.ErrorTypes.NETWORK_ERROR:
-								hls?.startLoad();
-								break;
-							case Hls.ErrorTypes.MEDIA_ERROR:
-								hls?.recoverMediaError();
-								break;
-							default:
-								hls?.destroy();
-								break;
-						}
-					}
-				});
-			} else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-				console.log('[VideoPlayer] Initializing Native HLS');
-				videoElement.src = streamUrl;
-				videoElement.addEventListener('loadedmetadata', () => {
-					videoElement?.play();
-					isPlaying = true;
-				});
-			} else {
-				console.log('[VideoPlayer] Initializing Direct Play');
-				videoElement.src = streamUrl;
-				videoElement.play();
-				isPlaying = true;
+			const targetUrl = untrack(() => selectedAudioUrl) || streamUrl;
+			// Only init if URL changed or not initialized
+			if (currentSrc !== targetUrl) {
+				initPlayer(
+					targetUrl,
+					untrack(() => startTime)
+				);
 			}
 		}
 	});
+
+	async function initPlayer(url: string, startTime: number = 0) {
+		// Reset previous players
+		untrack(() => {
+			if (hls) {
+				hls.destroy();
+				hls = null;
+			}
+			if (dashed) {
+				dashed.destroy();
+				dashed = null;
+			}
+		});
+
+		if (!videoElement) return;
+
+		// Get Token
+		let token = '';
+		if (typeof document !== 'undefined') {
+			const match = document.cookie.match(new RegExp('(^| )session=([^;]+)'));
+			if (match) token = match[2];
+		}
+
+		const isDash = url.includes('.mpd');
+
+		console.log(`[VideoPlayer] Init. URL: ${url}, StartTime: ${startTime}`);
+
+		// Check for DASH (MPD)
+		if (isDash) {
+			console.log('[VideoPlayer] Initializing DASH');
+			const dashjs = await import('dashjs');
+			if (!videoElement) return;
+
+			dashed = dashjs.MediaPlayer().create();
+
+			// Add Auth Header
+			if (token) {
+				dashed.extend('RequestModifier', function () {
+					return {
+						modifyRequestHeader: function (xhr: XMLHttpRequest) {
+							xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+							return xhr;
+						},
+						modifyRequestURL: function (url: string) {
+							return url;
+						}
+					};
+				});
+			}
+
+			dashed.updateSettings({
+				streaming: {
+					retryIntervals: {
+						MPD: 5000,
+						MediaSegment: 5000,
+						InitializationSegment: 5000,
+						IndexSegment: 5000,
+						other: 5000
+					},
+					retryAttempts: {
+						MPD: 3,
+						MediaSegment: 3,
+						InitializationSegment: 3,
+						IndexSegment: 3,
+						other: 3
+					}
+				}
+			});
+
+			// Handle t param for RealDebrid
+			let finalUrl = url;
+			if (isDash && startTime > 0 && (downloader === 'realdebrid' || url.includes('real-debrid'))) {
+				const separator = url.includes('?') ? '&' : '?';
+				finalUrl = `${url}${separator}t=${Math.floor(startTime)}`;
+				mpdOffset = startTime;
+			}
+
+			console.log(`[VideoPlayer] Initializing DASH with URL: ${finalUrl}`);
+			dashed.initialize(videoElement, finalUrl, true); // Auto-play true
+
+			// Tag the player to prevent immediate re-seek by the effect
+			if (startTime > 0) {
+				(dashed as any).__initialOffset = startTime;
+			}
+
+			dashed.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
+				isBuffering = false;
+				isPlaying = true;
+				if (startTime > 0 && videoElement) {
+					// For RD, we rely on mpdOffset, so videoElement.currentTime should be 0 (relative) or whatever the segment says.
+					// If not RD, standard seeking apply.
+					if (!downloader?.includes('realdebrid')) {
+						videoElement.currentTime = startTime;
+					} else {
+						// Ensure native time is reset if needed for the slice
+						videoElement.currentTime = 0;
+					}
+				}
+			});
+			dashed.on(dashjs.MediaPlayer.events.PLAYBACK_METADATA_LOADED, () => {
+				const d = videoElement?.duration || 0;
+				if (downloader === 'realdebrid') {
+					if (initialDuration === 0 && d > 0) {
+						initialDuration = d;
+					}
+					duration = initialDuration > 0 ? initialDuration : d;
+				} else {
+					duration = d;
+				}
+			});
+		}
+		// Check for HLS (M3U8)
+		else if (
+			Hls.isSupported() &&
+			(url.includes('.m3u8') || !videoElement.canPlayType('application/vnd.apple.mpegurl'))
+		) {
+			console.log('[VideoPlayer] Initializing HLS');
+			hls = new Hls({
+				enableWorker: true,
+				lowLatencyMode: true,
+				xhrSetup: function (xhr, url) {
+					if (token) {
+						xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+					}
+				}
+			});
+			hls.loadSource(url);
+			hls.attachMedia(videoElement);
+			hls.on(Hls.Events.MANIFEST_PARSED, () => {
+				if (videoElement) {
+					videoElement.currentTime = startTime;
+					videoElement.play().catch(() => console.log('Autoplay blocked'));
+				}
+				isPlaying = true;
+			});
+			hls.on(Hls.Events.ERROR, (event, data) => {
+				if (data.fatal) {
+					switch (data.type) {
+						case Hls.ErrorTypes.NETWORK_ERROR:
+							hls?.startLoad();
+							break;
+						case Hls.ErrorTypes.MEDIA_ERROR:
+							hls?.recoverMediaError();
+							break;
+						default:
+							hls?.destroy();
+							break;
+					}
+				}
+			});
+		} else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+			console.log('[VideoPlayer] Initializing Native HLS');
+			// Native HLS (Safari) does not support custom headers easily for video src.
+			// If required, we might need a Service Worker or proxy or token in URL.
+			// Assuming Dash/HLS JS is used for protected content mostly.
+			videoElement.src = url;
+			videoElement.currentTime = startTime;
+			videoElement.addEventListener(
+				'loadedmetadata',
+				() => {
+					videoElement?.play();
+					isPlaying = true;
+				},
+				{ once: true }
+			);
+		} else {
+			console.log('[VideoPlayer] Initializing Direct Play');
+			videoElement.src = url;
+			videoElement.currentTime = startTime;
+			videoElement.play();
+			isPlaying = true;
+		}
+		currentSrc = url;
+	}
 
 	// SEPARATE Effect for MPD Seeking (RD support)
 	$effect(() => {
 		// This depends on mpdOffset.
 		// We only want to act if we have a dash player and it's RD.
-		if (mpdOffset > 0 && dashed && downloader === 'realdebrid' && streamUrl?.includes('.mpd')) {
+		const targetUrl = selectedAudioUrl || streamUrl;
+		if (mpdOffset > 0 && dashed && downloader === 'realdebrid' && targetUrl?.includes('.mpd')) {
+			// Prevent double-seek if just initialized with this offset
+			if ((dashed as any).__initialOffset === mpdOffset) {
+				console.log('[VideoPlayer] Skipping duplicate seek for:', mpdOffset);
+				delete (dashed as any).__initialOffset;
+				return;
+			}
+
 			console.log('[VideoPlayer] Handling MPD Seek to', mpdOffset);
 			// Re-load logic for RD MPD seeking
-			const separator = streamUrl.includes('?') ? '&' : '?';
-			const playUrl = `${streamUrl}${separator}t=${Math.floor(mpdOffset)}&_=${Date.now()}`;
+			const separator = targetUrl.includes('?') ? '&' : '?';
+			const playUrl = `${targetUrl}${separator}t=${Math.floor(mpdOffset)}&_=${Date.now()}`;
 
 			// We need to attach this new URL to the existing player or re-init?
 			// Usually forcing attachSource is enough if player exists.
@@ -281,33 +410,14 @@
 	}
 
 	function changeAudio(url: string) {
+		console.log('[VideoPlayer] Changing audio to:', url);
 		selectedAudioUrl = url;
 		isBuffering = true;
-		if (hls && videoElement) {
-			const currentTimeSaver = videoElement.currentTime;
-			const wasPlaying = !videoElement.paused;
 
-			hls.loadSource(url);
+		const currentTimeSaver = videoElement?.currentTime || 0;
+		initPlayer(url, currentTimeSaver);
 
-			// Try to restore position and play state after clear
-			hls.once(Hls.Events.MANIFEST_PARSED, () => {
-				untrack(() => {
-					if (videoElement) {
-						videoElement.currentTime = currentTimeSaver;
-						if (wasPlaying) videoElement.play();
-					}
-				});
-			});
-
-			showAudioMenu = false;
-		} else if (videoElement) {
-			const v = videoElement;
-			const currentTimeSaver = v.currentTime;
-			v.src = url;
-			v.currentTime = currentTimeSaver;
-			v.play();
-			showAudioMenu = false;
-		}
+		showAudioMenu = false;
 	}
 
 	function resetControlsTimer() {

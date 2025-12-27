@@ -2,89 +2,78 @@
 	import MovieCard from '$lib/components/ui/MovieCard.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { BackendClient } from '$lib/backend';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	// No server props
 	// let { data } = $props();
 
-	const query = $derived($page.url.searchParams.get('q') || '');
-
-	let results = $state<any[]>([]);
-	let isLoading = $state(false);
+	let watchlist = $state<any[]>([]);
+	let isLoading = $state(true);
 	let error = $state<string | null>(null);
-	let searchInput = $state('');
 
 	// Pagination State
 	let currentPage = $state(1);
 	let totalPages = $state(0);
 	let totalResults = $state(0);
+	let isLoadMore = $state(false);
 
-	$effect(() => {
-		searchInput = query;
-		if (query) {
-			// New query means reset everything
-			resetAndSearch(query);
-		} else {
-			results = [];
-			currentPage = 1;
-			totalPages = 0;
-			totalResults = 0;
-		}
+	onMount(async () => {
+		await loadWatchlist(1);
 	});
 
-	async function resetAndSearch(q: string) {
-		results = [];
-		currentPage = 1;
-		totalPages = 0;
-		totalResults = 0;
-		await performSearch(q, 1);
-	}
+	async function loadWatchlist(page: number) {
+		if (page === 1) {
+			isLoading = true;
+		} else {
+			isLoadMore = true;
+		}
 
-	async function performSearch(q: string, page: number) {
-		if (!q) return;
-		isLoading = true;
 		error = null;
 		try {
 			const client = new BackendClient();
-			const res = await client.search(q, page);
+			const res = await client.getWatchlist(page);
+			const items = res.watchlist || [];
+
+			if (items.length === 0) {
+				if (page === 1) {
+					watchlist = [];
+					totalPages = 0;
+					totalResults = 0;
+				}
+				return;
+			}
+
+			// 1. If details are already in the watchlist response, utilize them directly.
+			// The new format includes overview, poster_path, name/title etc. in the watchlist array itself.
+			// We might not need to fetch details for every item anymore if the watchlist response is rich enough.
 
 			if (page === 1) {
-				results = res.results || [];
+				watchlist = items;
 			} else {
-				results = [...results, ...(res.results || [])];
+				watchlist = [...watchlist, ...items];
 			}
 
 			currentPage = res.page;
 			totalPages = res.total_pages;
 			totalResults = res.total_results;
 		} catch (e: any) {
-			console.error(e);
-			error = 'Search failed';
-			// Don't clear results on error if loading more
-			if (page === 1) results = [];
+			console.error('Failed to load watchlist', e);
+			error = 'Failed to load your list';
 		} finally {
 			isLoading = false;
-		}
-	}
-
-	function handleSearch(e: Event) {
-		e.preventDefault();
-		if (searchInput.trim()) {
-			goto(`/search?q=${encodeURIComponent(searchInput.trim())}`);
+			isLoadMore = false;
 		}
 	}
 
 	function loadMore() {
-		if (!isLoading && currentPage < totalPages) {
-			performSearch(query, currentPage + 1);
+		if (!isLoading && !isLoadMore && currentPage < totalPages) {
+			loadWatchlist(currentPage + 1);
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>MEDIAHUB // SEARCH</title>
+	<title>MEDIAHUB // MY LIST</title>
 </svelte:head>
 
 <div class="relative min-h-screen w-full bg-black">
@@ -94,10 +83,15 @@
 
 	<div class="relative z-10 px-6 pt-20 pb-12 md:px-12">
 		<div class="mx-auto max-w-7xl">
-			<!-- Search Header Removed by User Request -->
-			<div class="mb-8"></div>
+			<div class="border-dash-border/30 mb-12 flex items-center border-b pb-4">
+				<div class="flex items-center gap-3">
+					<div class="bg-dash-amber h-8 w-1"></div>
+					<h1 class="font-retro text-dash-text-light text-3xl tracking-wide uppercase sm:text-4xl">
+						My_List
+					</h1>
+				</div>
+			</div>
 
-			<!-- Results -->
 			{#if isLoading && currentPage === 1}
 				<!-- Grid Skeleton -->
 				<div
@@ -111,40 +105,38 @@
 						</div>
 					{/each}
 				</div>
-			{:else if error && results.length === 0}
+			{:else if error && watchlist.length === 0}
 				<div class="flex h-64 w-full items-center justify-center font-mono text-red-500">
 					{error}
 				</div>
-			{:else if results.length > 0}
+			{:else if watchlist.length === 0}
+				<div
+					class="text-dash-text/50 flex h-64 w-full flex-col items-center justify-center gap-4 font-mono"
+				>
+					<p>DATABASE_EMPTY</p>
+					<a
+						href="/"
+						class="text-dash-amber text-sm uppercase transition-colors hover:text-white hover:underline"
+						>Find Content</a
+					>
+				</div>
+			{:else}
 				<div
 					class="mb-12 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
 				>
-					{#each results as item}
+					{#each watchlist as item}
 						<MovieCard movie={item} />
 					{/each}
 				</div>
 
 				<!-- Loading Indicator for Infinite Scroll -->
-				{#if isLoading && currentPage > 1}
+				{#if isLoadMore}
 					<div class="flex justify-center pb-20">
 						<div
 							class="border-t-dash-amber h-6 w-6 animate-spin rounded-full border-2 border-white/20"
 						></div>
 					</div>
 				{/if}
-			{:else if query}
-				<div
-					class="text-dash-text/50 flex h-64 w-full flex-col items-center justify-center gap-4 font-mono"
-				>
-					<p>NO_MATCHES_FOUND</p>
-				</div>
-			{:else}
-				<!-- Empty State -->
-				<div
-					class="text-dash-text/50 flex h-64 w-full flex-col items-center justify-center gap-4 font-mono"
-				>
-					<p>AWAITING_INPUT</p>
-				</div>
 			{/if}
 		</div>
 	</div>
@@ -152,7 +144,7 @@
 
 <svelte:window
 	onscroll={() => {
-		if (isLoading || currentPage >= totalPages) return;
+		if (isLoading || isLoadMore || currentPage >= totalPages) return;
 		if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
 			loadMore();
 		}

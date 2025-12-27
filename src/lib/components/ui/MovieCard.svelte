@@ -9,7 +9,9 @@
 </script>
 
 <a
-	href={movie.media_type === 'tv' ? `/series/${movie.id}` : `/movies/${movie.id}`}
+	href={movie.media_type === 'tv' || movie.media_type === 'series'
+		? `/series/${movie.id}`
+		: `/movies/${movie.id}`}
 	class="group/card relative flex h-full flex-col gap-3 transition-all duration-300 hover:-translate-y-1"
 >
 	<!-- Poster Container -->
@@ -40,6 +42,15 @@
 		>
 			<span class="text-dash-amber text-[10px] font-bold">{movie.vote_average.toFixed(1)}</span>
 		</div>
+
+		<!-- Media Type Badge (Top-Left) -->
+		<div
+			class="border-dash-border/50 absolute top-2 left-2 flex items-center gap-1 border bg-black/80 px-1.5 py-0.5 backdrop-blur-sm"
+		>
+			<span class="text-[9px] font-bold tracking-widest text-white/80 uppercase">
+				{movie.media_type === 'tv' || movie.media_type === 'series' ? 'SERIES' : 'MOVIE'}
+			</span>
+		</div>
 	</div>
 
 	<!-- Info Section -->
@@ -54,7 +65,17 @@
 		<div class="text-dash-text/70 flex items-center gap-2 font-mono text-xs uppercase">
 			<span>{movie.release_date?.split('-')[0] || 'N/A'}</span>
 			<span class="text-dash-border">•</span>
-			<span class="truncate">{movie.genres?.slice(0, 1).join('') || 'UNKNOWN'}</span>
+			<span class="truncate">
+				{#if movie.season && movie.episode}
+					<span class="text-dash-amber font-bold">S{movie.season} E{movie.episode}</span>
+				{:else if movie.genres && movie.genres.length > 0}
+					{typeof movie.genres[0] === 'string'
+						? movie.genres[0]
+						: movie.genres[0].name || 'UNKNOWN'}
+				{:else}
+					{movie.media_type === 'tv' || movie.media_type === 'series' ? 'SERIES' : 'MOVIE'}
+				{/if}
+			</span>
 		</div>
 	</div>
 </a>

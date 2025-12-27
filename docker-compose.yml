@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     ports:
-      - "9011:4173"
+      - '9011:4173'
     environment:
       - NODE_ENV=production
     restart: always

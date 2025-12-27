@@ -95,7 +95,7 @@
 		<!-- Scrollable List -->
 		<div
 			bind:this={scrollContainer}
-			class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden pt-4 pr-12 pb-4 pl-1"
+			class="scrollbar-hide flex snap-x snap-mandatory flex-nowrap gap-4 overflow-x-auto overflow-y-hidden pt-4 pr-20 pb-4 pl-1"
 		>
 			{#each movies as movie}
 				<div class="w-[160px] flex-none snap-start transition-transform duration-300 md:w-[200px]">

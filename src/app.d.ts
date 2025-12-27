@@ -3,10 +3,24 @@
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			token?: string;
+			user?: {
+				id: number;
+				username: string;
+				email: string;
+				full_name?: string;
+			};
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
+	}
+}
+
+declare module 'svelte/elements' {
+	export interface HTMLAttributes<T> {
+		onclickoutside?: (event: CustomEvent<HTMLElement>) => void;
 	}
 }
 
