@@ -198,6 +198,13 @@
 
 			dashed.updateSettings({
 				streaming: {
+					buffer: {
+						stableBufferTime: 30,
+						bufferTimeAtTopQuality: 30,
+						bufferTimeAtTopQualityLongForm: 30,
+						longFormContentDurationThreshold: 600,
+						richBufferThreshold: 30
+					},
 					retryIntervals: {
 						MPD: 5000,
 						MediaSegment: 5000,
@@ -266,6 +273,7 @@
 			hls = new Hls({
 				enableWorker: true,
 				lowLatencyMode: true,
+				maxBufferLength: 30,
 				xhrSetup: function (xhr, url) {
 					if (token) {
 						xhr.setRequestHeader('Authorization', `Bearer ${token}`);
