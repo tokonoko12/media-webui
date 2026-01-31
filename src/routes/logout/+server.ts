@@ -18,5 +18,5 @@ export const POST: RequestHandler = async ({ cookies, locals }) => {
 	locals.token = undefined;
 	locals.user = undefined;
 
-	redirect(303, '/login');
+	throw redirect(303, '/login');
 };
