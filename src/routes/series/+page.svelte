@@ -46,15 +46,12 @@
 			</div>
 		{:else if catalog.sections && catalog.sections.length > 0}
 			{#each catalog.sections as section}
-				<SectionRow
-					title={section.title.toUpperCase()}
-					movies={section.items}
-					link="#"
-					color="dash-green"
-				/>
+				<SectionRow title={section.title.toUpperCase()} movies={section.items} link="#" />
 			{/each}
 		{:else}
-			<div class="text-dash-text py-20 text-center font-mono opacity-50">NO SERIES FOUND</div>
+			<div class="text-muted-foreground py-20 text-center font-mono opacity-50">
+				NO SERIES FOUND
+			</div>
 		{/if}
 	</div>
 </div>

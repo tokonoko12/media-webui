@@ -92,7 +92,7 @@
 		class="pointer-events-none fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"
 	></div>
 
-	<div class="relative z-10 px-6 pt-20 pb-12 md:px-12">
+	<div class="relative z-10 px-6 pt-10 pb-12 md:px-12">
 		<div class="mx-auto max-w-7xl">
 			<!-- Search Header Removed by User Request -->
 			<div class="mb-8"></div>

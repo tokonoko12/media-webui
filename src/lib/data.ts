@@ -39,6 +39,13 @@ export interface Movie {
 	revenue?: number;
 	production_companies?: { id: number; name: string; logo_path: string | null }[];
 	networks?: { id: number; name: string; logo_path: string | null }[];
+
+	// For Episode/Series Cards
+	season?: number;
+	episode?: number;
+
+	// User Progress
+	watched_duration?: number;
 }
 
 export const featuredMovie: Movie = {

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { Movie } from '$lib/data';
+	import { Badge } from '$lib/components/ui/badge';
+	import * as Card from '$lib/components/ui/card';
 
 	interface Props {
 		movie: Movie;
@@ -12,70 +14,76 @@
 	href={movie.media_type === 'tv' || movie.media_type === 'series'
 		? `/series/${movie.id}`
 		: `/movies/${movie.id}`}
-	class="group/card relative flex h-full flex-col gap-3 transition-all duration-300 hover:-translate-y-1"
+	class="group/card block h-full transition-all duration-300 hover:scale-[1.02]"
 >
-	<!-- Poster Container -->
-	<div
-		class="border-dash-border group-hover/card:border-dash-amber relative aspect-[2/3] w-full overflow-hidden border transition-colors"
-	>
-		{#if movie.poster_path}
-			<img
-				src={movie.poster_path}
-				alt={movie.title}
-				class="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105"
-				loading="lazy"
-			/>
-		{:else}
-			<div class="bg-dash-panel flex h-full w-full items-center justify-center">
-				<span class="text-dash-text text-xs uppercase">NO_IMG</span>
+	<Card.Root class="h-full overflow-hidden border-0 bg-transparent shadow-none">
+		<Card.Content
+			class="bg-muted relative aspect-[2/3] w-full overflow-hidden rounded-md p-0 shadow-lg"
+		>
+			{#if movie.poster_path}
+				<img
+					src={movie.poster_path}
+					alt={movie.title}
+					class="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-110"
+					loading="lazy"
+				/>
+			{:else}
+				<div class="bg-muted flex h-full w-full items-center justify-center">
+					<span class="text-muted-foreground text-xs font-medium">No Image</span>
+				</div>
+			{/if}
+
+			<!-- Overlay Gradient (On Hover) -->
+			<div
+				class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 transition-opacity duration-300 group-hover/card:opacity-90"
+			></div>
+
+			<!-- Rating Badge -->
+			{#if movie.vote_average > 0}
+				<div class="absolute top-2 right-2">
+					<Badge
+						variant="secondary"
+						class="text-primary bg-black/60 font-bold backdrop-blur-md hover:bg-black/70"
+					>
+						{movie.vote_average.toFixed(1)}
+					</Badge>
+				</div>
+			{/if}
+
+			<!-- Media Type Badge -->
+			<div class="absolute top-2 left-2">
+				<Badge
+					variant="outline"
+					class="border-none bg-black/60 text-[9px] font-bold tracking-wider text-white/90 uppercase backdrop-blur-md"
+				>
+					{movie.media_type === 'tv' || movie.media_type === 'series' ? 'TV' : 'MOVIE'}
+				</Badge>
 			</div>
-		{/if}
+		</Card.Content>
 
-		<!-- Overlay Gradient -->
-		<div
-			class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"
-		></div>
+		<Card.Footer class="flex flex-col items-start gap-1 p-0 pt-3">
+			<h3
+				class="text-foreground group-hover/card:text-primary line-clamp-1 text-base font-semibold transition-colors"
+				title={movie.title}
+			>
+				{movie.title}
+			</h3>
 
-		<!-- Rating Badge (Overlaid) -->
-		<div
-			class="border-dash-border/50 absolute top-2 right-2 flex items-center gap-1 border bg-black/80 px-1.5 py-0.5 backdrop-blur-sm"
-		>
-			<span class="text-dash-amber text-[10px] font-bold">{movie.vote_average.toFixed(1)}</span>
-		</div>
-
-		<!-- Media Type Badge (Top-Left) -->
-		<div
-			class="border-dash-border/50 absolute top-2 left-2 flex items-center gap-1 border bg-black/80 px-1.5 py-0.5 backdrop-blur-sm"
-		>
-			<span class="text-[9px] font-bold tracking-widest text-white/80 uppercase">
-				{movie.media_type === 'tv' || movie.media_type === 'series' ? 'SERIES' : 'MOVIE'}
-			</span>
-		</div>
-	</div>
-
-	<!-- Info Section -->
-	<div class="flex flex-col gap-1 px-1">
-		<h3
-			class="font-retro text-dash-text-light group-hover/card:text-dash-amber line-clamp-1 text-lg leading-none transition-colors"
-			title={movie.title}
-		>
-			{movie.title}
-		</h3>
-
-		<div class="text-dash-text/70 flex items-center gap-2 font-mono text-xs uppercase">
-			<span>{movie.release_date?.split('-')[0] || 'N/A'}</span>
-			<span class="text-dash-border">•</span>
-			<span class="truncate">
-				{#if movie.season && movie.episode}
-					<span class="text-dash-amber font-bold">S{movie.season} E{movie.episode}</span>
-				{:else if movie.genres && movie.genres.length > 0}
-					{typeof movie.genres[0] === 'string'
-						? movie.genres[0]
-						: movie.genres[0].name || 'UNKNOWN'}
-				{:else}
-					{movie.media_type === 'tv' || movie.media_type === 'series' ? 'SERIES' : 'MOVIE'}
-				{/if}
-			</span>
-		</div>
-	</div>
+			<div class="text-muted-foreground flex items-center gap-2 text-xs font-medium">
+				<span>{movie.release_date?.split('-')[0] || 'N/A'}</span>
+				<span class="text-muted-foreground/50">•</span>
+				<span class="text-foreground/80 truncate">
+					{#if movie.season && movie.episode}
+						<span>S{movie.season} E{movie.episode}</span>
+					{:else if movie.genres && movie.genres.length > 0}
+						{typeof movie.genres[0] === 'string'
+							? movie.genres[0]
+							: movie.genres[0].name || 'Unknown'}
+					{:else}
+						{movie.media_type === 'tv' || movie.media_type === 'series' ? 'Series' : 'Movie'}
+					{/if}
+				</span>
+			</div>
+		</Card.Footer>
+	</Card.Root>
 </a>

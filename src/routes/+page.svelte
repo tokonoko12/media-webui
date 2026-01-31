@@ -1,31 +1,18 @@
 <script lang="ts">
 	import MovieCard from '$lib/components/ui/MovieCard.svelte';
 	import SectionRow from '$lib/components/ui/SectionRow.svelte';
-	import Skeleton from '$lib/components/ui/Skeleton.svelte';
+	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import * as Carousel from '$lib/components/ui/carousel';
 	import { BackendClient } from '$lib/backend';
-	import { onDestroy, onMount } from 'svelte';
-
-	// No longer receiving data from server load
-	// let { data } = $props();
+	import { onMount } from 'svelte';
+	import { Play, Info } from 'lucide-svelte';
+	import Autoplay from 'embla-carousel-autoplay';
 
 	let homeData = $state<{ featured: any[]; sections: any[] }>({ featured: [], sections: [] });
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
-
-	let currentIndex = $state(0);
-	let interval: ReturnType<typeof setInterval>;
-
-	function startCarousel() {
-		interval = setInterval(() => {
-			if (homeData.featured.length > 0) {
-				currentIndex = (currentIndex + 1) % Math.min(homeData.featured.length, 5);
-			}
-		}, 8000);
-	}
-
-	function stopCarousel() {
-		if (interval) clearInterval(interval);
-	}
 
 	onMount(async () => {
 		try {
@@ -38,22 +25,14 @@
 			isLoading = false;
 		}
 	});
-
-	// Auto-start carousel when data loads
-	$effect(() => {
-		if (!isLoading && homeData.featured.length > 0) {
-			startCarousel();
-		}
-		return () => stopCarousel();
-	});
 </script>
 
 <svelte:head>
-	<title>MEDIAHUB // TERMINAL</title>
+	<title>MEDIAHUB // HOME</title>
 </svelte:head>
 
 <!-- Full Width Layout -->
-<div class="mx-auto flex h-full max-w-7xl flex-col px-4 pt-20 pb-12">
+<div class="mx-auto flex h-full max-w-7xl flex-col px-4 pt-10 pb-12">
 	{#if isLoading}
 		<!-- Skeletons -->
 		<div class="flex flex-col gap-12 pt-12 pb-20">
@@ -62,14 +41,14 @@
 					<Skeleton class="h-8 w-48" />
 					<div class="scrollbar-hide flex gap-4 overflow-x-auto">
 						{#each Array(6) as _}
-							<Skeleton class="aspect-[2/3] w-[140px] flex-none md:w-[180px]" />
+							<Skeleton class="aspect-[2/3] w-[140px] flex-none rounded-md md:w-[180px]" />
 						{/each}
 					</div>
 				</div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="flex h-96 w-full items-center justify-center font-mono text-red-500">
+		<div class="text-destructive flex h-96 w-full items-center justify-center font-mono">
 			{error}
 		</div>
 	{:else}
@@ -77,97 +56,90 @@
 		{#if homeData.featured.length > 0}
 			{@const featuredMovies = homeData.featured.filter((m) => m.backdrop_path).slice(0, 5)}
 			{#if featuredMovies.length > 0}
-				<section class="panel group relative mb-8 h-[500px] w-full overflow-hidden">
-					<!-- Carousel State -->
-					{#each featuredMovies as movie, i}
-						<div
-							class="absolute inset-0 h-full w-full transition-opacity duration-1000 {i ===
-							currentIndex
-								? 'z-10 opacity-100'
-								: 'z-0 opacity-0'}"
-						>
-							<img
-								src={movie.backdrop_path}
-								alt={movie.title}
-								class="absolute inset-0 h-full w-full object-cover"
-							/>
-							<!-- Gradient & Noise -->
-							<div
-								class="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30"
-							></div>
-							<div
-								class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"
-							></div>
+				<Carousel.Root
+					opts={{ loop: true }}
+					plugins={[
+						Autoplay({
+							delay: 8000
+						})
+					]}
+					class="group border-border bg-card relative mb-8 w-full overflow-hidden rounded-xl border shadow-2xl"
+				>
+					<Carousel.Content class="m-0">
+						{#each featuredMovies as movie, i}
+							<Carousel.Item class="p-0">
+								<div class="relative h-[500px] w-full">
+									<img
+										src={movie.backdrop_path}
+										alt={movie.title}
+										class="absolute inset-0 h-full w-full object-cover"
+									/>
+									<!-- Gradient & Noise -->
+									<div
+										class="from-background via-background/60 to-background/10 absolute inset-0 bg-gradient-to-t"
+									></div>
 
-							<!-- Content -->
-							<!-- Mobile: Centered content, darker overlay. Desktop: Left aligned, standard gradient -->
-							<div
-								class="absolute bottom-0 left-0 z-20 flex w-full flex-col justify-end p-4 md:justify-start md:p-12"
-							>
-								<div class="mb-2 flex items-center gap-2 md:mb-4 md:gap-3">
-									<span
-										class="bg-dash-amber px-1.5 py-0.5 text-[10px] font-bold text-black uppercase md:px-2 md:text-xs"
+									<!-- Content -->
+									<div
+										class="absolute bottom-0 left-0 z-20 flex w-full flex-col justify-end p-4 md:justify-start md:p-12"
 									>
-										FEATURED
-									</span>
-									<span
-										class="border-dash-text-light/30 text-dash-text-light border px-1.5 py-0.5 text-[10px] uppercase md:px-2 md:text-xs"
-									>
-										#{i + 1}
-									</span>
+										<div class="mb-2 flex items-center gap-2 md:mb-4 md:gap-3">
+											<Badge class="bg-primary hover:bg-primary/90 text-black">FEATURED</Badge>
+											<Badge variant="outline" class="border-white/30 text-white backdrop-blur-sm">
+												#{i + 1}
+											</Badge>
+										</div>
+
+										<h1
+											class="text-foreground mb-2 line-clamp-2 max-w-4xl text-2xl leading-none font-bold tracking-tight md:mb-4 md:line-clamp-2 md:text-6xl"
+										>
+											{movie.title.toUpperCase()}
+										</h1>
+
+										<p
+											class="text-muted-foreground mb-4 line-clamp-3 max-w-2xl text-xs leading-relaxed font-medium drop-shadow-md md:mb-8 md:line-clamp-4 md:text-sm"
+										>
+											{movie.overview}
+										</p>
+
+										<div class="flex flex-wrap gap-3 md:gap-4">
+											<Button
+												href={movie.media_type === 'series'
+													? `/series/${movie.id}`
+													: `/movies/${movie.id}`}
+												class="min-w-[140px] font-bold tracking-widest uppercase md:h-12 md:px-8"
+											>
+												<Play class="mr-2 h-4 w-4" /> PLAY
+											</Button>
+
+											<Button
+												variant="outline"
+												class="min-w-[140px] border-white/20 bg-black/20 font-bold tracking-widest text-white uppercase backdrop-blur-md hover:bg-white/10 hover:text-white md:h-12 md:px-8"
+											>
+												<Info class="mr-2 h-4 w-4" /> INFO
+											</Button>
+										</div>
+									</div>
 								</div>
-
-								<h1
-									class="font-retro text-dash-text-light mb-2 line-clamp-2 max-w-4xl text-2xl leading-none tracking-tight md:mb-4 md:line-clamp-2 md:text-7xl"
-								>
-									{movie.title.toUpperCase()}
-								</h1>
-
-								<p
-									class="text-dash-text border-dash-amber mb-4 line-clamp-3 max-w-2xl border-l-4 pl-4 font-mono text-xs leading-relaxed drop-shadow-md md:mb-8 md:line-clamp-4 md:text-sm"
-								>
-									{movie.overview}
-								</p>
-
-								<div class="flex flex-wrap gap-3 md:gap-4">
-									<a
-										href={movie.media_type === 'series'
-											? `/series/${movie.id}`
-											: `/movies/${movie.id}`}
-										class="bg-dash-border hover:bg-dash-amber text-dash-text-light border border-transparent px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors hover:border-black hover:text-black md:px-8 md:py-3 md:text-base"
-									>
-										PLAY
-									</a>
-									<button
-										class="border-dash-border hover:border-dash-text-light text-dash-text hover:text-dash-text-light border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors md:px-6 md:py-3 md:text-base"
-									>
-										INFO
-									</button>
-								</div>
-							</div>
-						</div>
-					{/each}
-
-					<!-- Controls -->
-					<div class="absolute right-6 bottom-6 z-30 flex items-center gap-2">
-						{#each featuredMovies as _, i}
-							<button
-								aria-label="Go to slide {i + 1}"
-								onclick={() => (currentIndex = i)}
-								class="h-2 w-2 border transition-all {i === currentIndex
-									? 'bg-dash-amber border-dash-amber'
-									: 'border-dash-text hover:border-dash-amber bg-transparent'}"
-							></button>
+							</Carousel.Item>
 						{/each}
-					</div>
-				</section>
+					</Carousel.Content>
+
+					<!-- Navigation -->
+					<Carousel.Previous
+						class="hover:text-primary left-4 h-12 w-12 border-white/20 bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100 hover:bg-black/80"
+					/>
+					<Carousel.Next
+						class="hover:text-primary right-4 h-12 w-12 border-white/20 bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100 hover:bg-black/80"
+					/>
+				</Carousel.Root>
 			{/if}
 		{/if}
 
 		<!-- Dynamic Sections -->
 		<div class="flex flex-col gap-12">
 			{#each homeData.sections as section}
-				<SectionRow title={section.title.toUpperCase()} movies={section.items} color="dash-amber" />
+				<SectionRow title={section.title.toUpperCase()} movies={section.items} />
 			{/each}
 		</div>
 	{/if}

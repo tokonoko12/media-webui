@@ -95,19 +95,16 @@
 		class="pointer-events-none fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"
 	></div>
 
-	<div class="relative z-10 px-6 pt-20 pb-12 md:px-12">
+	<div class="relative z-10 px-6 pt-10 pb-12 md:px-12">
 		<div class="mx-auto max-w-7xl">
 			<div class="border-dash-border/30 mb-12 flex items-center border-b pb-4">
 				<div class="flex items-center gap-3">
 					<div class="bg-dash-amber h-8 w-1"></div>
-					<h1 class="font-retro text-dash-text-light text-3xl tracking-wide uppercase sm:text-4xl">
-						History
-					</h1>
+					<h1 class="text-dash-text-light text-3xl tracking-wide sm:text-4xl">History</h1>
 				</div>
 			</div>
 
 			{#if isLoading && currentPage === 1}
-				<!-- Grid Skeleton -->
 				<div
 					class="mb-12 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
 				>

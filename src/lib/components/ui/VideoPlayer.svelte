@@ -26,6 +26,7 @@
 
 	let isPlaying = $state(false);
 	let isBuffering = $state(false);
+	let canPlay = $state(false);
 	let showControls = $state(true);
 	let hideControlsTimeout: NodeJS.Timeout;
 	let audioTracks = $derived(audios ? Object.entries(audios) : []);
@@ -42,6 +43,27 @@
 	// Special DB (RealDebrid) MPD State
 	let mpdOffset = $state(0);
 	let initialDuration = $state(0);
+	let bufferedRanges = $state<TimeRanges | null>(null);
+
+	// Helper function to get buffered time ranges
+	function getBufferedRanges(): TimeRanges | null {
+		return videoElement?.buffered || null;
+	}
+
+	// Helper function to check if a specific time is buffered
+	function isTimeBuffered(time: number): boolean {
+		const buffered = getBufferedRanges();
+		if (!buffered || !videoElement) return false;
+
+		for (let i = 0; i < buffered.length; i++) {
+			const start = buffered.start(i);
+			const end = buffered.end(i);
+			if (time >= start && time <= end) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	function updateHistory() {
 		if (!mediaId || !mediaType || !currentTime || !duration) return;
@@ -95,14 +117,7 @@
 			});
 			isPlaying = false;
 			isBuffering = false;
-			showControls = true;
-			currentTime = 0;
-			duration = 0;
-			selectedAudioUrl = undefined;
-			mpdOffset = 0;
-			initialDuration = 0;
-			isPlaying = false;
-			isBuffering = false;
+			canPlay = false;
 			showControls = true;
 			currentTime = 0;
 			duration = 0;
@@ -199,11 +214,11 @@
 			dashed.updateSettings({
 				streaming: {
 					buffer: {
-						stableBufferTime: 30,
-						bufferTimeAtTopQuality: 30,
-						bufferTimeAtTopQualityLongForm: 30,
+						stableBufferTime: 40,
+						bufferTimeAtTopQuality: 40,
+						bufferTimeAtTopQualityLongForm: 40,
 						longFormContentDurationThreshold: 600,
-						richBufferThreshold: 30
+						richBufferThreshold: 40
 					},
 					retryIntervals: {
 						MPD: 5000,
@@ -273,7 +288,7 @@
 			hls = new Hls({
 				enableWorker: true,
 				lowLatencyMode: true,
-				maxBufferLength: 30,
+				maxBufferLength: 40,
 				xhrSetup: function (xhr, url) {
 					if (token) {
 						xhr.setRequestHeader('Authorization', `Bearer ${token}`);
@@ -385,9 +400,49 @@
 	function seekRelative(seconds: number) {
 		if (downloader === 'realdebrid' && streamUrl && streamUrl.includes('.mpd')) {
 			const target = Math.max(0, (currentTime || 0) + seconds);
-			handleMpdSeek(target);
+			const relativeTarget = target - mpdOffset;
+
+			console.log(
+				`[SeekRelative] Target: ${target}s, Relative: ${relativeTarget}s, mpdOffset: ${mpdOffset}s`
+			);
+
+			// Check if the relative target time is buffered in current video element
+			if (videoElement && bufferedRanges) {
+				let isBuffered = false;
+				for (let i = 0; i < bufferedRanges.length; i++) {
+					const start = bufferedRanges.start(i);
+					const end = bufferedRanges.end(i);
+					if (relativeTarget >= start && relativeTarget <= end) {
+						isBuffered = true;
+						console.log(`[SeekRelative] Target IS buffered in range [${start}s - ${end}s]`);
+						break;
+					}
+				}
+
+				if (isBuffered) {
+					// Use browser seeking for buffered content
+					console.log('[SeekRelative] Seeking within buffer');
+					videoElement.currentTime = relativeTarget;
+					resetControlsTimer();
+				} else {
+					// Unbuffered - trigger MPD seek (fetch new manifest)
+					console.log('[SeekRelative] Target NOT buffered, fetching new manifest');
+					handleMpdSeek(target);
+				}
+			} else {
+				// Fallback if no buffer data
+				handleMpdSeek(target);
+			}
 		} else if (videoElement) {
-			videoElement.currentTime += seconds;
+			const target = videoElement.currentTime + seconds;
+			if (isTimeBuffered(target)) {
+				// Directly seek if buffered
+				videoElement.currentTime = target;
+			} else {
+				// Let the player handle unbuffered seeks (may trigger loading)
+				isBuffering = true;
+				videoElement.currentTime = target;
+			}
 			resetControlsTimer();
 		}
 	}
@@ -397,10 +452,29 @@
 		const time = parseFloat(target.value);
 
 		if (downloader === 'realdebrid' && streamUrl && streamUrl.includes('.mpd')) {
-			handleMpdSeek(time);
+			// Check if target is buffered
+			if (isTimeBuffered(time)) {
+				// Use browser seeking for buffered content
+				if (videoElement) {
+					const relativeTime = time - mpdOffset;
+					videoElement.currentTime = relativeTime;
+					currentTime = time;
+				}
+			} else {
+				// Unbuffered - trigger MPD seek
+				handleMpdSeek(time);
+			}
 		} else if (videoElement) {
-			videoElement.currentTime = time;
-			currentTime = time;
+			if (isTimeBuffered(time)) {
+				// Directly seek if buffered
+				videoElement.currentTime = time;
+				currentTime = time;
+			} else {
+				// Let the player handle unbuffered seeks
+				isBuffering = true;
+				videoElement.currentTime = time;
+				currentTime = time;
+			}
 		}
 		resetControlsTimer();
 	}
@@ -485,7 +559,40 @@
 					}}
 					onpause={() => (isPlaying = false)}
 					onwaiting={() => (isBuffering = true)}
-					onplaying={() => (isBuffering = false)}
+					onplaying={() => {
+						isBuffering = false;
+						canPlay = true;
+					}}
+					oncanplaythrough={() => {
+						canPlay = true;
+						isBuffering = false;
+					}}
+					onloadeddata={() => {
+						canPlay = true;
+					}}
+					onseeking={() => {
+						// Only set buffering if seeking to unbuffered position
+						if (videoElement) {
+							const targetTime = videoElement.currentTime;
+							if (!isTimeBuffered(targetTime)) {
+								isBuffering = true;
+							}
+						}
+					}}
+					onseeked={() => {
+						// Clear buffering after seek completes
+						isBuffering = false;
+					}}
+					onprogress={() => {
+						// Update bufferedRanges for timeline display
+						if (videoElement?.buffered) {
+							bufferedRanges = videoElement.buffered;
+						}
+						// Update can play state based on buffer
+						if (videoElement && videoElement.currentTime > 0) {
+							canPlay = isTimeBuffered(videoElement.currentTime);
+						}
+					}}
 					ontimeupdate={() => {
 						const vTime = videoElement?.currentTime || 0;
 						const isRD =
@@ -524,7 +631,7 @@
 							<!-- Left: Exit -->
 							<button
 								onclick={onClose}
-								class="hover:text-dash-amber flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
+								class="hover:text-primary flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -553,7 +660,7 @@
 												e.stopPropagation();
 												showAudioMenu = !showAudioMenu;
 											}}
-											class="hover:text-dash-amber flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
+											class="hover:text-primary flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
 											aria-label="Audio Settings"
 										>
 											<svg
@@ -577,7 +684,7 @@
 										</button>
 										{#if showAudioMenu}
 											<div
-												class="border-dash-border/50 absolute top-full right-0 mt-2 w-56 overflow-hidden border bg-black/95 p-1 text-sm text-white shadow-xl backdrop-blur-md"
+												class="absolute top-full right-0 mt-2 w-56 overflow-hidden border border-white/10 bg-black/95 p-1 text-sm text-white shadow-xl backdrop-blur-md"
 											>
 												{#each audioTracks as [key, track]}
 													<button
@@ -587,7 +694,7 @@
 														}}
 														class="block w-full px-4 py-2 text-left transition-colors {selectedAudioUrl ===
 														(track as any)['url']
-															? 'bg-dash-amber font-bold text-black'
+															? 'bg-primary font-bold text-black'
 															: 'text-white hover:bg-white/10'}"
 													>
 														<div class="flex items-center justify-between">
@@ -617,7 +724,7 @@
 								<!-- Fullscreen -->
 								<button
 									onclick={toggleFullscreen}
-									class="hover:text-dash-amber flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
+									class="hover:text-primary flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
 									aria-label="Fullscreen"
 								>
 									<svg
@@ -647,7 +754,7 @@
 								<!-- Rewind -->
 								<button
 									onclick={() => seekRelative(-15)}
-									class="hover:text-dash-amber group flex transform flex-col items-center gap-2 text-white/70 transition-colors duration-200 hover:scale-110"
+									class="group hover:text-primary flex transform flex-col items-center gap-2 text-white/70 transition-colors duration-200 hover:scale-110"
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -672,7 +779,7 @@
 									{#if isBuffering}
 										<div class="absolute inset-0 -m-4">
 											<svg
-												class="text-dash-amber h-full w-full animate-spin opacity-50"
+												class="text-primary h-full w-full animate-spin opacity-50"
 												xmlns="http://www.w3.org/2000/svg"
 												fill="none"
 												viewBox="0 0 24 24"
@@ -695,7 +802,7 @@
 									{/if}
 									<button
 										onclick={togglePlay}
-										class="hover:text-dash-amber scale-100 text-white drop-shadow-2xl transition-colors duration-200 hover:scale-110 active:scale-95"
+										class="hover:text-primary scale-100 text-white drop-shadow-2xl transition-colors duration-200 hover:scale-110 active:scale-95"
 										aria-label={isPlaying ? 'Pause' : 'Play'}
 									>
 										{#if isPlaying}
@@ -731,7 +838,7 @@
 								<!-- Forward -->
 								<button
 									onclick={() => seekRelative(15)}
-									class="hover:text-dash-amber group flex transform flex-col items-center gap-2 text-white/70 transition-colors duration-200 hover:scale-110"
+									class="group hover:text-primary flex transform flex-col items-center gap-2 text-white/70 transition-colors duration-200 hover:scale-110"
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -771,13 +878,26 @@
 							<div
 								class="relative mx-8 mb-8 h-6 w-auto rounded-sm bg-gray-800/50 transition-all duration-300 hover:h-8"
 							>
+								<!-- Buffer Indicator (shows buffered ranges) -->
+								{#if bufferedRanges && duration > 0}
+									{#each Array.from({ length: bufferedRanges.length }) as _, i}
+										{@const start = bufferedRanges.start(i)}
+										{@const end = bufferedRanges.end(i)}
+										{@const startPercent = (start / duration) * 100}
+										{@const widthPercent = ((end - start) / duration) * 100}
+										<div
+											class="absolute inset-y-0 z-0 rounded-sm bg-gray-500/60"
+											style="left: {startPercent}%; width: {widthPercent}%"
+										></div>
+									{/each}
+								{/if}
 								<input
 									type="range"
 									min="0"
 									max={duration || 100}
 									value={currentTime}
 									oninput={handleTimelineChange}
-									style="background: linear-gradient(to right, #DCA54C {(currentTime /
+									style="background: linear-gradient(to right, var(--color-primary) {(currentTime /
 										(duration || 1)) *
 										100}%, transparent {(currentTime / (duration || 1)) * 100}%);"
 									class="absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none rounded-none bg-transparent

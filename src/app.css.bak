@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@import 'tailwindcss';
+
+@theme {
+	/* Fonts */
+	--font-main: 'Outfit', sans-serif;
+	--font-mono: 'Outfit', sans-serif; /* Override mono to be main for now to kill retro vibe completely, or use a real mono if needed for code */
+
+	/* Colors - Cinematic Palette */
+	--color-background: #0a0a0a;
+	--color-surface: #121212;
+	--color-surface-hover: #1e1e1e;
+	--color-border: #2a2a2a;
+	
+	--color-text-primary: #ffffff;
+	--color-text-secondary: #a3a3a3;
+	--color-text-muted: #525252;
+
+	--color-primary: #facc15; /* Vibrant Yellow */
+	--color-primary-hover: #eab308;
+	
+	--color-accent: #3b82f6; /* Modern Blue for actions if needed */
+	
+	--color-glass: rgba(20, 20, 20, 0.6);
+	--color-glass-border: rgba(255, 255, 255, 0.1);
+}
+
+:root {
+	color-scheme: dark;
+	--background: var(--color-background);
+	--foreground: var(--color-text-primary);
+}
+
+body {
+	background-color: var(--background);
+	color: var(--foreground);
+	font-family: var(--font-main);
+	overflow-x: hidden;
+	margin: 0;
+	padding: 0;
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Utilities */
+.panel {
+	background-color: var(--color-surface);
+	border: 1px solid var(--color-border);
+	padding: 1.5rem;
+}
+
+/* Deprecate Retro Classes by mapping them to modern equivalents */
+.font-retro, .text-retro {
+	font-family: var(--font-main) !important;
+	letter-spacing: normal !important;
+	text-transform: none !important;
+}
+
+.text-dash-amber {
+	color: var(--color-primary);
+}
+
+.border-dash-amber {
+	border-color: var(--color-primary);
+}
+
+.bg-dash-panel {
+	background-color: var(--color-surface);
+}
+
+.text-dash-text {
+	color: var(--color-text-secondary);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: var(--color-border);
+	border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-text-muted);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}

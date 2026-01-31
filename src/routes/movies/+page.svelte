@@ -25,7 +25,7 @@
 	<title>MEDIAHUB // MOVIES</title>
 </svelte:head>
 
-<div class="mx-auto flex h-full max-w-7xl flex-col gap-8 px-4 pt-20 pb-12 md:px-8">
+<div class="mx-auto flex h-full max-w-7xl flex-col gap-8 px-4 pt-10 pb-12 md:px-8">
 	<div class="flex flex-col gap-12">
 		{#if isLoading}
 			<!-- Skeletons -->
@@ -45,15 +45,12 @@
 			</div>
 		{:else if catalog.sections && catalog.sections.length > 0}
 			{#each catalog.sections as section}
-				<SectionRow
-					title={section.title.toUpperCase()}
-					movies={section.items}
-					link="#"
-					color="dash-amber"
-				/>
+				<SectionRow title={section.title.toUpperCase()} movies={section.items} link="#" />
 			{/each}
 		{:else}
-			<div class="text-dash-text py-20 text-center font-mono opacity-50">NO MOVIES FOUND</div>
+			<div class="text-muted-foreground py-20 text-center font-mono opacity-50">
+				NO MOVIES FOUND
+			</div>
 		{/if}
 	</div>
 </div>

@@ -78,7 +78,7 @@
 {/if}
 
 <div
-	class="bg-dash-bg text-dash-text selection:bg-dash-amber flex min-h-screen flex-col overflow-x-hidden font-mono selection:text-black"
+	class="bg-dash-bg text-dash-text selection:bg-dash-amber flex min-h-screen flex-col font-mono selection:text-black"
 >
 	{#if !$page.url.pathname.startsWith('/login')}
 		<Navbar />
