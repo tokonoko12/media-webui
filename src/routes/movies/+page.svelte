@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SectionRow from '$lib/components/ui/SectionRow.svelte';
-	import Skeleton from '$lib/components/ui/Skeleton.svelte';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { BackendClient } from '$lib/backend';
 	import { onMount } from 'svelte';
 

@@ -8,6 +8,8 @@
 	import { BackendClient } from '$lib/backend';
 	import { page } from '$app/stores';
 	import { Play, Check, Plus, Loader2 } from 'lucide-svelte';
+	import ManualVideoPlayer from '$lib/components/ui/ManualVideoPlayer.svelte';
+	import TrailerModal from '$lib/components/ui/TrailerModal.svelte';
 
 	const movieId = $derived($page.params.id);
 
@@ -26,6 +28,7 @@
 
 	// Player state
 	let isVideoOpen = $state(false);
+	let isTrailerOpen = $state(false);
 	let isStreamModalOpen = $state(false);
 	let currentVideoUrl = $state<string | undefined>(undefined);
 	let currentTrailerId = $state<string | undefined>(undefined);
@@ -238,7 +241,23 @@
 	}
 
 	async function openTrailer() {
-		// Try to find trailer if not already set
+		// 1. Try backend trailer_url
+		if (!currentTrailerId && movie?.trailer_url) {
+			try {
+				const url = new URL(movie.trailer_url);
+				const v = url.searchParams.get('v');
+				if (v) currentTrailerId = v;
+				else {
+					// Handle youtu.be/ID
+					const segments = url.pathname.split('/');
+					if (segments.length > 0) currentTrailerId = segments[segments.length - 1];
+				}
+			} catch (e) {
+				console.error('Failed to parse trailer_url', e);
+			}
+		}
+
+		// 2. Try nested videos results (if backend populated them)
 		if (!currentTrailerId && movie?.videos?.results) {
 			const trailer = movie.videos.results.find(
 				(v: any) => v.type === 'Trailer' && v.site === 'YouTube'
@@ -248,29 +267,11 @@
 			}
 		}
 
-		// If still no trailer, try fetching from TMDB directly
-		if (!currentTrailerId && movie?.id) {
-			try {
-				const response = await fetch(
-					`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=81b92cp786c59e4229e5e851642db0ec`
-				);
-				const data = await response.json();
-				if (data.results) {
-					const trailer = data.results.find(
-						(v: any) => v.type === 'Trailer' && v.site === 'YouTube'
-					);
-					if (trailer) {
-						currentTrailerId = trailer.key;
-					}
-				}
-			} catch (e) {
-				console.error('[openTrailer] Failed to fetch trailer:', e);
-			}
-		}
-
 		// Open player with trailer (if found) or show empty player
 		currentVideoUrl = undefined;
-		isVideoOpen = true;
+		if (currentTrailerId) {
+			isTrailerOpen = true;
+		}
 		console.log('[openTrailer] Opening trailer:', currentTrailerId || 'No trailer available');
 	}
 </script>
@@ -279,7 +280,7 @@
 	<title>MediaHub // {movie ? movie.title : 'Details'}</title>
 </svelte:head>
 
-<VideoPlayer
+<!-- <VideoPlayer
 	isOpen={isVideoOpen}
 	youtubeId={currentTrailerId}
 	streamUrl={currentVideoUrl}
@@ -290,6 +291,21 @@
 	startTime={movie?.watched_duration || 0}
 	streamDuration={currentDuration}
 	onClose={closePlayer}
+/> -->
+{#if isVideoOpen}
+	<ManualVideoPlayer
+		downloader={'realdebrid'}
+		{closePlayer}
+		startTime={movie?.watched_duration || 0}
+		streamduration={currentDuration}
+		audios={currentAudioTracks}
+	/>
+{/if}
+
+<TrailerModal
+	isOpen={isTrailerOpen}
+	youtubeId={currentTrailerId}
+	onClose={() => (isTrailerOpen = false)}
 />
 
 <StreamModal

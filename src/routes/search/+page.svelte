@@ -1,10 +1,9 @@
 <script lang="ts">
 	import MovieCard from '$lib/components/ui/MovieCard.svelte';
-	import Skeleton from '$lib/components/ui/Skeleton.svelte';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { BackendClient } from '$lib/backend';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
 
 	// No server props
 	// let { data } = $props();

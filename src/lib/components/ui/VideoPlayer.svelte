@@ -1,7 +1,18 @@
 <script lang="ts">
-	import { onMount, onDestroy, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import Hls from 'hls.js';
+	import { formatTime } from '$lib/utils/time';
+	import ExitIcon from '$lib/components/icons/player/ExitIcon.svelte';
+	import AudioIcon from '$lib/components/icons/player/AudioIcon.svelte';
+	import CheckIcon from '$lib/components/icons/player/CheckIcon.svelte';
+	import FullscreenIcon from '$lib/components/icons/player/FullscreenIcon.svelte';
+	import RewindIcon from '$lib/components/icons/player/RewindIcon.svelte';
+	import ForwardIcon from '$lib/components/icons/player/ForwardIcon.svelte';
+	import SpinnerIcon from '$lib/components/icons/player/SpinnerIcon.svelte';
+	import PlayIcon from '$lib/components/icons/player/PlayIcon.svelte';
+	import PauseIcon from '$lib/components/icons/player/PauseIcon.svelte';
+	import CloseIcon from '$lib/components/icons/player/CloseIcon.svelte';
 
 	let {
 		isOpen,
@@ -22,7 +33,7 @@
 	let hls = $state<Hls | null>(null);
 	let dashed = $state<any>(null); // Dash player instance
 
-	let containerElement: HTMLDivElement | undefined = undefined;
+	let containerElement = $state<HTMLDivElement | undefined>(undefined);
 
 	let isPlaying = $state(false);
 	let isBuffering = $state(false);
@@ -517,17 +528,6 @@
 	function onMouseMove() {
 		resetControlsTimer();
 	}
-
-	function formatTime(seconds: number): string {
-		if (!seconds || isNaN(seconds)) return '00:00';
-		const h = Math.floor(seconds / 3600);
-		const m = Math.floor((seconds % 3600) / 60);
-		const s = Math.floor(seconds % 60);
-		if (h > 0) {
-			return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-		}
-		return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -633,20 +633,7 @@
 								onclick={onClose}
 								class="hover:text-primary flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
 							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke-width="2"
-									stroke="currentColor"
-									class="h-5 w-5"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-									/>
-								</svg>
+								<ExitIcon class="h-5 w-5" />
 								<span class="font-mono text-xs font-bold tracking-wider uppercase">EXIT</span>
 							</button>
 
@@ -663,20 +650,7 @@
 											class="hover:text-primary flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
 											aria-label="Audio Settings"
 										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke-width="2"
-												stroke="currentColor"
-												class="h-5 w-5"
-											>
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-												/>
-											</svg>
+											<AudioIcon class="h-5 w-5" />
 											<span
 												class="hidden font-mono text-xs font-bold tracking-wider uppercase sm:block"
 												>AUDIO</span
@@ -700,18 +674,7 @@
 														<div class="flex items-center justify-between">
 															<span>{(track as any).language || key}</span>
 															{#if selectedAudioUrl === (track as any)['url']}
-																<svg
-																	xmlns="http://www.w3.org/2000/svg"
-																	viewBox="0 0 24 24"
-																	fill="currentColor"
-																	class="h-4 w-4"
-																>
-																	<path
-																		fill-rule="evenodd"
-																		d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 011.04-.207z"
-																		clip-rule="evenodd"
-																	/>
-																</svg>
+																<CheckIcon class="h-4 w-4" />
 															{/if}
 														</div>
 													</button>
@@ -727,20 +690,7 @@
 									class="hover:text-primary flex items-center gap-2 bg-black/50 px-4 py-2 text-white/80 backdrop-blur-md transition-all hover:bg-black/80"
 									aria-label="Fullscreen"
 								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke-width="2"
-										stroke="currentColor"
-										class="h-5 w-5"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-										/>
-									</svg>
+									<FullscreenIcon class="h-5 w-5" />
 								</button>
 							</div>
 						</div>
@@ -756,20 +706,7 @@
 									onclick={() => seekRelative(-15)}
 									class="group hover:text-primary flex transform flex-col items-center gap-2 text-white/70 transition-colors duration-200 hover:scale-110"
 								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke-width="1.5"
-										stroke="currentColor"
-										class="h-10 w-10 transition-transform group-active:-translate-x-1"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
-										/>
-									</svg>
+									<RewindIcon class="h-10 w-10 transition-transform group-active:-translate-x-1" />
 									<span class="font-mono text-[10px] font-bold tracking-widest uppercase">-15s</span
 									>
 								</button>
@@ -778,26 +715,7 @@
 								<div class="relative flex items-center justify-center">
 									{#if isBuffering}
 										<div class="absolute inset-0 -m-4">
-											<svg
-												class="text-primary h-full w-full animate-spin opacity-50"
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24"
-											>
-												<circle
-													class="opacity-25"
-													cx="12"
-													cy="12"
-													r="10"
-													stroke="currentColor"
-													stroke-width="3"
-												></circle>
-												<path
-													class="opacity-75"
-													fill="currentColor"
-													d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-												></path>
-											</svg>
+											<SpinnerIcon class="text-primary h-full w-full animate-spin opacity-50" />
 										</div>
 									{/if}
 									<button
@@ -806,31 +724,9 @@
 										aria-label={isPlaying ? 'Pause' : 'Play'}
 									>
 										{#if isPlaying}
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												fill="currentColor"
-												viewBox="0 0 24 24"
-												class="h-24 w-24"
-											>
-												<path
-													fill-rule="evenodd"
-													d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z"
-													clip-rule="evenodd"
-												/>
-											</svg>
+											<PauseIcon class="h-24 w-24" />
 										{:else}
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 24 24"
-												fill="currentColor"
-												class="h-24 w-24"
-											>
-												<path
-													fill-rule="evenodd"
-													d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
-													clip-rule="evenodd"
-												/>
-											</svg>
+											<PlayIcon class="h-24 w-24" />
 										{/if}
 									</button>
 								</div>
@@ -840,20 +736,7 @@
 									onclick={() => seekRelative(15)}
 									class="group hover:text-primary flex transform flex-col items-center gap-2 text-white/70 transition-colors duration-200 hover:scale-110"
 								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke-width="1.5"
-										stroke="currentColor"
-										class="h-10 w-10 transition-transform group-active:translate-x-1"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											d="M15 15l6-6m0 0l-6-6m6 6h-12a6 6 0 000 12h3"
-										/>
-									</svg>
+									<ForwardIcon class="h-10 w-10 transition-transform group-active:translate-x-1" />
 									<span class="font-mono text-[10px] font-bold tracking-widest uppercase">+15s</span
 									>
 								</button>
@@ -919,16 +802,7 @@
 					onclick={onClose}
 					class="absolute top-4 right-4 z-50 flex items-center justify-center rounded-full bg-black/50 p-2 text-white/80 backdrop-blur-md transition-all hover:bg-black hover:text-white"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke-width="2"
-						stroke="currentColor"
-						class="h-6 w-6"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-					</svg>
+					<CloseIcon class="h-6 w-6" />
 				</button>
 				<iframe
 					src="https://www.youtube.com/embed/{youtubeId}?autoplay=1&rel=0&showinfo=0"

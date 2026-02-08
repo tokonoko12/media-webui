@@ -7,7 +7,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { BackendClient } from '$lib/backend';
 	import { page } from '$app/stores';
-	import { onMount, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import { Play, Check, Plus, Loader2, Info, ChevronLeft, ChevronRight } from 'lucide-svelte';
 	import * as Card from '$lib/components/ui/card';
 
@@ -224,60 +224,22 @@
 		openPlay();
 	}
 
+	import { StreamService } from '$lib/logic/stream-resolver';
+	import ManualVideoPlayer from '$lib/components/ui/ManualVideoPlayer.svelte';
+
+	const streamService = new StreamService();
+
 	async function fetchStreams(urlOrSid: string, sn?: number, en?: number) {
 		isLoadingStreams = true;
 		try {
-			const client = new BackendClient();
-			let streamList: any = [];
-
-			if (urlOrSid.startsWith('http')) {
-				streamList = await client.getStreams(urlOrSid);
-			} else if (sn && en) {
-				streamList = await client.getSeriesStreams(urlOrSid, sn, en);
-			}
-
-			if (streamList && !Array.isArray(streamList) && streamList.streams) {
-				streams = streamList;
-				const priorities = ['4k', '1080p', '720p', 'other'];
-				for (const q of priorities) {
-					if (streamList.streams[q]?.length > 0) {
-						activeStream = streamList.streams[q][0];
-						currentPlayQuality = q;
-						break;
-					}
-				}
-				const qualities = Object.keys(streamList.streams);
-				if (!activeStream && qualities.length > 0) {
-					activeStream = streamList.streams[qualities[0]][0];
-					currentPlayQuality = qualities[0];
-				}
-				return;
-			}
-
-			const grouped: Record<string, any[]> = {};
-			['4k', '1080p', '720p', 'other'].forEach((q) => (grouped[q] = []));
-
-			if (Array.isArray(streamList)) {
-				for (const s of streamList) {
-					let quality = s.quality?.toLowerCase() || 'other';
-					if (['4k', '2160p', 'uhl'].includes(quality)) quality = '4k';
-					else if (['1080p', 'fhd'].includes(quality)) quality = '1080p';
-					else if (['720p', 'hd'].includes(quality)) quality = '720p';
-					else quality = 'other';
-
-					grouped[quality].push({ ...s, quality });
-				}
-			}
-			streams = { streams: grouped };
-
-			const priorities = ['4k', '1080p', '720p', 'other'];
-			for (const q of priorities) {
-				if (grouped[q]?.length > 0) {
-					activeStream = grouped[q][0];
-					currentPlayQuality = q;
-					break;
-				}
-			}
+			const {
+				streams: fetchedStreams,
+				activeStream: fetchedActive,
+				quality
+			} = await streamService.fetchStreams(urlOrSid, sn, en);
+			streams = { streams: fetchedStreams };
+			activeStream = fetchedActive;
+			currentPlayQuality = quality;
 		} catch (e) {
 			console.error('Failed to fetch streams:', e);
 		} finally {
@@ -296,36 +258,15 @@
 		if (activeStream) {
 			isResolving = true;
 			try {
-				const client = new BackendClient();
-				const data = await client.resolveStream(activeStream.url);
-
-				if (data && data.audios) {
-					let pickedKey = Object.keys(data.audios)[0];
-					const downloader = data.downloader || data.streamlink?.downloader;
-
-					if (downloader === 'realdebrid') {
-						const mpdKey = Object.keys(data.audios).find((k) =>
-							data.audios[k].url.includes('.mpd')
-						);
-						if (mpdKey) pickedKey = mpdKey;
-					}
-
-					if (pickedKey) {
-						const audioData = data.audios[pickedKey];
-						currentVideoUrl = audioData.url;
-						currentDownloader = downloader;
-						currentAudioTracks = data.audios;
-						currentDuration = data.duration || 0;
-						isVideoOpen = true;
-					}
-				} else if (data && data.original) {
-					currentVideoUrl = data.original;
-					currentDownloader = data.downloader || data.streamlink?.downloader;
-					currentDuration = data.duration || 0;
-					isVideoOpen = true;
-				}
+				const result = await streamService.resolveStream(activeStream.url);
+				currentVideoUrl = result.videoUrl;
+				currentDownloader = result.downloader;
+				currentAudioTracks = result.audios;
+				currentDuration = result.duration || 0;
+				isVideoOpen = true;
 			} catch (e) {
 				console.error('Failed to resolve stream:', e);
+				// Fallback is handled in service but if it throws error
 				currentVideoUrl = activeStream.url;
 				isVideoOpen = true;
 			} finally {
@@ -357,7 +298,7 @@
 	<title>MEDIAHUB // {series ? series.title.toUpperCase() : 'LOADING...'}</title>
 </svelte:head>
 
-<VideoPlayer
+<!-- <VideoPlayer
 	isOpen={isVideoOpen}
 	streamUrl={currentVideoUrl}
 	audios={currentAudioTracks}
@@ -370,7 +311,17 @@
 	streamDuration={currentDuration}
 	onClose={closeVideo}
 	youtubeId={trailer}
-/>
+/> -->
+
+{#if isVideoOpen}
+	<ManualVideoPlayer
+		downloader={'realdebrid'}
+		closePlayer={closeVideo}
+		startTime={playingEpisode?.watched_duration || 0}
+		streamduration={currentDuration}
+		audios={currentAudioTracks}
+	/>
+{/if}
 
 <StreamModal
 	isOpen={isStreamModalOpen}
