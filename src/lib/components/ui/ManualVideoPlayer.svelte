@@ -3,6 +3,7 @@
 	import AudioIcon from '$lib/components/icons/player/AudioIcon.svelte';
 	import CheckIcon from '$lib/components/icons/player/CheckIcon.svelte';
 	import FullscreenIcon from '$lib/components/icons/player/FullscreenIcon.svelte';
+	import ExitFullscreenIcon from '$lib/components/icons/player/ExitFullscreenIcon.svelte';
 	import RewindIcon from '$lib/components/icons/player/RewindIcon.svelte';
 	import ForwardIcon from '$lib/components/icons/player/ForwardIcon.svelte';
 	import PlayIcon from '$lib/components/icons/player/PlayIcon.svelte';
@@ -39,6 +40,7 @@
 	let showAudioMenu = $state(false);
 	let showControls = $state(true);
 	let isScrubbing = $state(false);
+	let isFullscreen = $state(false);
 
 	let bufferLevel = $state<BufferLevel>({ audio: 0, video: 0 });
 	let controlTimer: NodeJS.Timeout;
@@ -54,6 +56,7 @@
 	let initialStartTime = $state(startTime);
 
 	let timelineElement = $state<HTMLDivElement>();
+	let videoContainerElement = $state<HTMLDivElement>();
 
 	$effect(() => {
 		let aborted = false;
@@ -206,7 +209,17 @@
 			initialStartTime = currentTime;
 		}
 	}
+
+	function toggleFullscreen() {
+		if (!document.fullscreenElement) {
+			videoContainerElement?.requestFullscreen();
+		} else {
+			document.exitFullscreen();
+		}
+	}
 </script>
+
+<svelte:document onfullscreenchange={() => (isFullscreen = !!document.fullscreenElement)} />
 
 <svelte:window
 	onmousemove={onWindowMouseMove}
@@ -222,6 +235,7 @@
 	tabindex="-1"
 >
 	<div
+		bind:this={videoContainerElement}
 		class="group relative h-full w-full overflow-hidden bg-black {showControls
 			? 'cursor-auto'
 			: 'cursor-none'}"
@@ -372,9 +386,14 @@
 
 					<button
 						class="hover:text-primary transition-colors hover:scale-110 active:scale-95"
-						aria-label="Fullscreen"
+						aria-label={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+						onclick={toggleFullscreen}
 					>
-						<FullscreenIcon class="h-3 w-3 text-white drop-shadow-md md:h-5 md:w-5" />
+						{#if isFullscreen}
+							<ExitFullscreenIcon class="h-3 w-3 text-white drop-shadow-md md:h-5 md:w-5" />
+						{:else}
+							<FullscreenIcon class="h-3 w-3 text-white drop-shadow-md md:h-5 md:w-5" />
+						{/if}
 					</button>
 				</div>
 			</div>
